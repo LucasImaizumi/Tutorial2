@@ -1,0 +1,98 @@
+---
+title: "Tutorial 2 - Lucas Teruo Imaizumi"
+author: "Lucas Teruo Imaizumi"
+date: "02/03/2021"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Paper -  Os determinantes do Desempenho Escolar e Esfeitos de Tamanho da sala no desempenho dos alunos: Evidências usando regressões descontínuas.
+
+**Principais Pontos/ Resumo Curto:**
+Menezes Filho 2007 e Matavelli/Menezis Filho 2020 
+
+O Papar trabalha a questão da educação, o primeiro (2007) traz uma revisão do panorama da educação usando estatística descritivas do Brasil em comparação com outros países, após um breve relato histórico de como a educação foi construída, o autor tentar descobrir o impacto de diversas variáveis sobre a nota dos alunos, durante a pesquisa ele tem achados importantes, tendo como principal a visualização da escolaridade *das mães*, o número de horas na escola e algumas outras de menor relevância. Além de que os modelos predizem apenas 20% da nota, sendo o restante determinado por variáveis não observadas (como esforço e facilidade em aprendizado). Fora isso o autor também traz uma série de variáveis quen não são relevantes, apesar de intuitivamente parecerem, como o salário dos professores, número de computadores e tamanho da sala, sendo esse último alvo de sua tese seguinte, onde utilizando método da regressão descontinuada, este acha que não relevância sobre o tamanho da turma na nota dos alunos.
+
+## Tutorial 2:
+
+
+# 1
+```{r}
+#Mudar o diretório quando trocar de PC!
+library(readxl)
+notas <- read_excel("C:/Users/Daquisu/Documents/nota-alagoas.xls")
+```
+Primeiramente é importante falar que o ponto ótimo dos gráficos apresentados não implica que o tamanho da turma afeta negativamente o desempenho, Menezis Filho (2007,2020) traz evidências que quando adicionados outros controles, o tamanho da turma não tem significância sobre a nota (pelo menos para os 3 Estados estudados), sendo assim é preciso verificar se essa hipotese é verdadeira para Alagoas também, as turmas maiores podem estar atreladas a municípios/regiões com menos escolas e consequentemente mais pobres afetando assim a nota dos alunos. Para observar isso podemos criar um modelo de previsão das notas com os dados apresentados.
+
+Observamos que com os dados apresentados podemos construir um modelo para as escolas e um modelo para os alunos.Mas vamos focar nas notas dos alunos.
+```{r}
+library(tidyr)
+library(dplyr)
+library(sjPlot)
+```
+
+```{r, echo = TRUE}
+ Modelo1 <- lm(nota_lp ~ tamturma + tamturma2 + mulher + negro + computador + moramae + educmae1 + educmae2 + educmae3 + educmae4 + educmae5 + educmae6 + morapai + educpai1 + educpai2 + educpai3 + educpai4 + educpai5 + educpai6 + iraula + livro + reprovou + trabalha + abandonou + reforço + extracurricular + merenda + interrupção + semprof + nivel_socio_economico, data=notas, na.action=na.exclude)
+summary(Modelo1)
+```
+```{r, echo =  TRUE}
+ Modelo2 <- lm(nota_lp ~ tamturma + tamturma2 + mulher + negro + computador +  iraula + livro + reprovou + trabalha + abandonou + reforço + extracurricular + merenda + interrupção + semprof + nivel_socio_economico, data=notas, na.action=na.exclude)
+summary(Modelo2)
+```
+Foram criados dois modelos tentando prever a nota em lingua portuguesa, supondo que a diferença entre os 2 está na omissão da variável dummies escolaridade dos pais, talvez ao utilizá-la ocorremos no risco de homoestaticidade (ou seja alta correlação entre as variáveis), já que na média pessoas com mais escolaridade possuem maior nível socioeconômico conforme diz a teoria economica do capital humano, além disso no segundo modelo o tamanho da classe torna-se relevante, sendo assim, o ponto máximo da turma é a $\frac{\partial\ nota\ pt}{\partial\ tamturma} = 0$, ou seja $- 0,02\ tamturma + 0,9581 = 0$, resolvendo a equação achamos que $tamturm_{max} = 47,905$. O valor aparenta estar um pouco mais à direita do valor apresentado e siginifica que levando em contas as variáveis do modelo e tudo o mais constante, o valor que maximiza a nota média em português é $47,905$, seguindo essa mesma metodologia vamos tentar achar o valor que maximiza a nota em matemática.
+
+```{r, echo = TRUE}
+ Modelo3 <- lm(nota_mt ~ tamturma + tamturma2 + mulher + negro + computador +  iraula + livro + reprovou + trabalha + abandonou + reforço + extracurricular + merenda + interrupção + semprof + nivel_socio_economico, data=notas, na.action=na.exclude)
+summary(Modelo3)
+
+```
+Usando as mesmas variáveis do modelo anterior podemos realizar o mesmo procedimento de maximmização através da derivada parcial da equação de regressão, ou seja, $\frac{\partial\ nota\ mt}{\partial\ tamturma}=0$, ou seja, $-0,022634\ tamturma + 0,8054 = 0$ sendo assim chegamos no valor de $tamturma_{max} = 35,58$.
+
+Com relações ao custo podemos usar duas métricas para observar se os números apontados como máximo são maiores ou menores do que as médias das turmas atuais, caso sejam maiores o ponto ótimo das turmas implicará na média uma redução de custos e caso menores um aumento para se atingir o ótimo
+
+```{r, echo = TRUE}
+hist(notas$tamturma, breaks = 20)
+```
+```{r, echo = TRUE}
+mean(notas$tamturma, na.rm = TRUE)
+sd(notas$tamturma,  na.rm = TRUE)
+```
+A distribuição aparenta ser uma normal, então podemos utilizar a função de probabilidade para estimar quantas escolas aumentariam suas turmas para chegar ao máximo e quantas teriam que diminuir 
+
+```{r, echo=TRUE}
+pnorm(35.58, mean = 31.32535, sd = 6.14504)
+pnorm(47.9, mean = 31.32535, sd = 6.14504)
+```
+Segundo esses dados 75% das escolas enfretariam uma redução da turma, todavia como na prática, como o eixo x do gráfico só existe nos inteiros, é provável que esse número esteja um pouco superestimado, todavia a garantia é que pelos mais da metadade das escolas poderia aumentar as turmas e talvez enfrentar algum ganho, mas se usarmos o ótimo da turma de português como referencial, nesse caso maioria 99% das escolas poderiam ter ganhos advindos do aumento de alunos por turma e consquente redução de classes, todavia conforme a concavidade da função esse ganho poderia prejudicar o desempenho dos alunos em matemática.E é importante lembrar da premissa que turmas com mais alunos implicam em redução de custos.
+
+*Obs: Como tratam-se de microdados, as turmas são repetidas na base, visto que 1 turma possuiu vários alunos, mas eu imagino que isso não gere uma distorção nos dados
+
+##2.Em seguida vamos estimar os termo de interação entre alguns grupos de interesse da secretaria.
+
+Primeiro iremos observar a interação entre alunos e alunas negros e não negros na nota de português
+```{r, echo = TRUE}
+library(sjPlot)
+notas3 <- notas
+notas3$mulher <- as.factor(notas3$mulher)
+notas3$negro <- as.factor(notas3$negro)
+modelo4 <- lm(data = notas3, formula = nota_lp ~ mulher + negro + mulher:negro)
+summary(modelo4)
+plot_model(modelo4, type = "pred", terms = c("mulher","negro"))
+```
+É possível tirar duas conclusões do gráfico apresentado, primeiro que existe uma diferença grande entre as notas das meninas e meninos, todavia isso já era esperado, como apontado no paper de FILHO (2007) onde essa diferença se apresentava até o momento em todos os dados já analisados. Outro ponto importante é que existe um diferença grande entre alunos negros e não negros em ambos os genêros.
+
+Seguindo para a nota de matemática temos:
+```{r}
+library(sjPlot)
+modelo5 <- lm(data = notas3, formula = nota_mt ~ mulher + negro + mulher:negro)
+summary(modelo5)
+plot_model(modelo5, type = "pred", terms = c("mulher","negro"))
+```
+Nesse caso se inverte a situação e os meninos se saem um pouco melhor em matemática, o que novamente é apontada por FILHO (2007), apesar disso, as diferenças de cor continuam significantes, e não negros se saem melhor tanto para meninos quanto para meninas.
+
